@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Расписание на сегодня</title>
+    <title>Расписание занятий</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Roboto', Arial, sans-serif;
-            max-width: 600px;
+            max-width: 800px;
             margin: 0 auto;
             padding: 20px;
             background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
@@ -102,17 +102,93 @@
             padding: 25px;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
         }
+        
+        /* Стили для вкладок */
+        .tabs {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        
+        .tab-button {
+            padding: 12px 20px;
+            margin: 0 5px;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #a0aec0 0%, #718096 100%);
+            color: white;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            font-size: 1em;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.3s;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .tab-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+        }
+        
+        .tab-button.active {
+            background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* Стили для недельного расписания */
+        .day-schedule {
+            margin-bottom: 30px;
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+        }
+        
+        .day-title {
+            font-weight: 700;
+            font-size: 1.2em;
+            color: #2c5282;
+            text-align: center;
+            padding: 10px;
+            margin-bottom: 15px;
+            background: linear-gradient(135deg, #e6fffa 0%, #bee3f8 100%);
+            border-radius: 6px;
+            font-family: 'Montserrat', sans-serif;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.05);
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Расписание на сегодня</h1>
+        <h1>Расписание занятий</h1>
         <div class="group-info" id="group-name">22-ВТО</div>
         <div class="date-info" id="current-date"></div>
         <div class="multilang-date" id="multilang-month"></div>
         <div class="week-type" id="week-type"></div>
-        <div class="day-highlight" id="current-day"></div>
-        <div id="schedule-container"></div>
+        
+        <!-- Вкладки -->
+        <div class="tabs">
+            <button class="tab-button active" onclick="showTab('today')">На сегодня</button>
+            <button class="tab-button" onclick="showTab('week')">На всю неделю</button>
+        </div>
+        
+        <!-- Вкладка на сегодня -->
+        <div id="today-tab" class="tab-content active">
+            <div class="day-highlight" id="current-day"></div>
+            <div id="schedule-container"></div>
+        </div>
+        
+        <!-- Вкладка на всю неделю -->
+        <div id="week-tab" class="tab-content">
+            <div id="week-schedule-container"></div>
+        </div>
     </div>
 
     <script>
@@ -226,6 +302,86 @@
             ]
         };
 
+        // Переключение между вкладками
+        function showTab(tabName) {
+            // Скрываем все вкладки
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Убираем активный класс у всех кнопок
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('active');
+            });
+            
+            // Показываем нужную вкладку
+            if (tabName === 'today') {
+                document.getElementById('today-tab').classList.add('active');
+                document.querySelector('.tab-button:nth-child(1)').classList.add('active');
+            } else if (tabName === 'week') {
+                document.getElementById('week-tab').classList.add('active');
+                document.querySelector('.tab-button:nth-child(2)').classList.add('active');
+                // Генерируем расписание на неделю при первом открытии вкладки
+                if (document.getElementById('week-schedule-container').children.length === 0) {
+                    generateWeekSchedule();
+                }
+            }
+        }
+        
+        // Функция для создания элемента расписания
+        function createScheduleItem(item) {
+            const scheduleItem = document.createElement('div');
+            scheduleItem.className = 'schedule-item';
+            
+            const timeSpan = document.createElement('div');
+            timeSpan.className = 'time';
+            timeSpan.textContent = item.time;
+            
+            const activityDiv = document.createElement('div');
+            activityDiv.textContent = item.activity;
+            
+            scheduleItem.appendChild(timeSpan);
+            scheduleItem.appendChild(activityDiv);
+            
+            return scheduleItem;
+        }
+        
+        // Генерация расписания на всю неделю (пн-пт)
+        function generateWeekSchedule() {
+            const weekContainer = document.getElementById('week-schedule-container');
+            weekContainer.innerHTML = '';
+            
+            // Массив дней недели (только пн-пт)
+            const workDays = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница'];
+            
+            // Создаем расписание для каждого дня
+            workDays.forEach(day => {
+                const daySchedule = document.createElement('div');
+                daySchedule.className = 'day-schedule';
+                
+                const dayTitle = document.createElement('div');
+                dayTitle.className = 'day-title';
+                dayTitle.textContent = day;
+                daySchedule.appendChild(dayTitle);
+                
+                // Добавляем занятия для данного дня
+                const dayItems = schedules[day];
+                if (dayItems && dayItems.length > 0) {
+                    dayItems.forEach(item => {
+                        const scheduleItem = createScheduleItem(item);
+                        daySchedule.appendChild(scheduleItem);
+                    });
+                } else {
+                    const noScheduleItem = document.createElement('div');
+                    noScheduleItem.className = 'schedule-item';
+                    noScheduleItem.textContent = 'На этот день расписание отсутствует';
+                    daySchedule.appendChild(noScheduleItem);
+                }
+                
+                weekContainer.appendChild(daySchedule);
+            });
+        }
+
         // Отображаем расписание при загрузке страницы
         window.onload = function() {
             const now = new Date();
@@ -254,21 +410,10 @@
             // Очищаем контейнер перед заполнением
             scheduleContainer.innerHTML = '';
             
-            // Заполняем расписание
+            // Заполняем расписание на сегодня
             if (todaySchedule && todaySchedule.length > 0) {
                 todaySchedule.forEach(item => {
-                    const scheduleItem = document.createElement('div');
-                    scheduleItem.className = 'schedule-item';
-                    
-                    const timeSpan = document.createElement('div');
-                    timeSpan.className = 'time';
-                    timeSpan.textContent = item.time;
-                    
-                    const activityDiv = document.createElement('div');
-                    activityDiv.textContent = item.activity;
-                    
-                    scheduleItem.appendChild(timeSpan);
-                    scheduleItem.appendChild(activityDiv);
+                    const scheduleItem = createScheduleItem(item);
                     scheduleContainer.appendChild(scheduleItem);
                 });
             } else {
